@@ -1,0 +1,1 @@
+celery -A celery worker --loglevel=info --logfile=logs/celery.log --hostname=localhost
