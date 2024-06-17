@@ -125,3 +125,4 @@ def fetch_and_loop_materials(data):
 def create_materials(data):
     clear_all()
     fetch_and_loop_materials(data)
+

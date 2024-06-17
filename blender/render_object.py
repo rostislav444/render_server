@@ -1,135 +1,33 @@
-import shutil
-from io import BytesIO
-from math import radians
 import asyncio
+import os
+import shutil
+from decimal import Decimal
+from math import radians
+
 import bpy
 import requests
-from decimal import Decimal
+
+from utils.camera import create_camera
 from utils.create_materials import create_materials, set_color_material
+from utils.crete_scene import create_scene
+from utils.fetch_object import fetch_and_save_obj
 
 root = '/Users/rostislavnikolaev/Desktop/Sites/render-server/blender'
-media_path = root + '/media'
+media_path = os.path.join(root, 'media')
 
 local = False
 domain = 'http://0.0.0.0:8000' if local else 'https://dreamers.com.ua'
 
 
-def create_new_scene():
-    # Clear existing mesh objects in the scene
-    bpy.ops.object.select_all(action='DESELECT')
-    bpy.ops.object.select_by_type(type='LIGHT')
-    bpy.ops.object.select_by_type(type='MESH')
-    bpy.ops.object.delete()
-
-    # Create a new scene
-    new_scene = bpy.data.scenes.new(name="Scene")
-    # new_scene.shading.use_scene_lights_render = True
-    # new_scene.shading.use_scene_world_render = True
-
-    # Link the new scene to the current blend file
-    bpy.context.window.scene = new_scene
-
-    # Set the world background color to white
-    world = bpy.data.worlds.new(name="World")
-    new_scene.world = world
-    world.use_nodes = False
-    world.color = (1, 1, 1)
-
-
-def customize_render():
-    # Set up render engine
-    bpy.context.scene.render.engine = 'CYCLES'
-
-    # Tell blender use GPU
-    bpy.context.preferences.addons['cycles'].preferences.compute_device_type = 'METAL'
-
-    # Set samples qty
-    bpy.context.scene.cycles.samples = 200
-
-    # Set up rendering settings
-    bpy.context.scene.render.resolution_x = 1333
-    bpy.context.scene.render.resolution_y = 1000
-    bpy.context.scene.render.image_settings.file_format = 'PNG'
-    bpy.context.scene.render.film_transparent = True
-
-
-def create_camera(location, rotation):
-    # Удаляем все камеры в сцене
-    for obj in bpy.context.scene.objects:
-        if obj.type == 'CAMERA':
-            bpy.data.objects.remove(obj, do_unlink=True)
-
-    # Создаем новую камеру
-    camera_data = bpy.data.cameras.new(name="Camera")
-    camera_object = bpy.data.objects.new("Camera", camera_data)
-
-    # Link the camera object to the scene
-    bpy.context.collection.objects.link(camera_object)
-
-    # Set the scene's camera to the newly created camera
-    bpy.context.scene.camera = camera_object
-
-    # Optionally, set the camera location and rotation
-    camera_object.location = location
-    camera_object.rotation_euler = rotation
-
-
-def create_light(coords=(8, -4, 8)):
-    # Create a new point light object
-    light_data = bpy.data.lights.new(name="PointLight", type='POINT')
-    light_data.energy = 2000  # Set light power in watts
-    light_data.shadow_soft_size = 1.0  # Set light radius in centimeters
-
-    light_object = bpy.data.objects.new("PointLight", light_data)
-
-    # Link the light object to the scene
-    bpy.context.collection.objects.link(light_object)
-
-    # Set the light location
-    light_object.location = coords
-
-
-def add_cube():
-    bpy.ops.mesh.primitive_cube_add(size=200, enter_editmode=False, align='WORLD', location=(0, 0, 100))
-
-    # Select active object
-    cube = bpy.context.active_object
-    cube.name = "Exterior"
-
-    # Меняем цвет куба на белый
-    mat = bpy.data.materials.new(name="White")
-    mat.diffuse_color = (1, 1, 1, 1)  # RGBA (белый цвет)
-    cube.data.materials.append(mat)
-
-
-def fetch_and_save_obj(obj_url):
-    # Загружаем данные OBJ
-    response = requests.get(obj_url)
-    obj_data = BytesIO(response.content)
-
-    # Сохраняем данные OBJ в файл
-    obj_file_path = root + '/product_3d_obj.obj'
-    with open(obj_file_path, 'wb') as obj_file:
-        obj_file.write(obj_data.getvalue())
-
-    bpy.ops.wm.obj_import(filepath=obj_file_path, global_scale=1)
-
-
-def create_material(name, color):
+def create_new_material(name, color):
     material = bpy.data.materials.new(name=name)
     material.use_nodes = True
     set_color_material(material, color)
     return material
 
 
-def create_scene():
-    create_new_scene()
-    customize_render()
-    create_light((4.07, 1.02, 5.8))
-
-
 def assign_materials_to_sku(materials):
-    black_mat = create_material("BlackPaint", [0.05, 0.05, 0.05]),
+    black_mat = create_new_material("BlackPaint", [0.05, 0.05, 0.05]),
 
     for obj in bpy.context.scene.objects:
         if obj.type == 'MESH' and obj.name != 'Exterior':
@@ -208,15 +106,13 @@ def loop_sku(sku_list, cameras=None):
         print('%d of %d' % (i, length))
         i += 1
 
-
     delete_dir(media_path)
 
 
 def loop_products(data):
     for product in data['products']:
         create_scene()
-        fetch_and_save_obj(product['model_3d']['obj'])
-        print(product['model_3d']['cameras'])
+        fetch_and_save_obj(root, product['model_3d']['obj'])
         loop_sku(product['sku'], product['model_3d']['cameras'])
 
 
