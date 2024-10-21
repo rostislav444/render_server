@@ -5,16 +5,17 @@ from math import radians
 import bpy
 import requests
 
-from utils.camera import create_camera
-from utils.create_materials import create_materials
+from utils.camera import create_camera, get_camera_location
 from utils.crete_scene import create_scene
 from utils.fetch_object import fetch_and_save_obj
+from utils.materials.fetch import create_materials
 
 root = os.path.dirname(os.path.abspath(__file__))
 media_path = os.path.join(root, 'media')
 
-local = True
-domain = 'http://0.0.0.0:8000' if local else 'https://dreamers.com.ua'
+replace = True
+local = False
+domain = 'http://0.0.0.0:8000' if local else 'http://194.15.46.132:8000'
 
 
 def send_image(scene_material, image_file_path):
@@ -44,12 +45,6 @@ def deactivate_holdout_and_apply_material(collection, new_material):
         if obj.type == 'MESH':
             obj.data.materials.clear()
             obj.data.materials.append(new_material)
-            # for material_slot in obj.material_slots:
-            #     if material_slot.material.name == "Holdout_Material":
-            #         material_slot.material = new_material
-
-    # # Удаляем материал Holdout из данных коллекции
-    # bpy.data.materials.remove(bpy.data.materials.get("Holdout_Material"))
 
 
 def apply_holdout_to_collection(collection):
@@ -100,8 +95,13 @@ def render(filename=''):
 
 
 def loop_part_materials(product):
+    n = 0
     for camera in product['model_3d']['cameras']:
+        n += 1
+
+        create_camera(*get_camera_location(camera))
         for part in camera['parts']:
+            print(part)
             for p in camera['parts']:
                 apply_holdout_to_collection(p['part']['blender_name'])
 
@@ -109,36 +109,23 @@ def loop_part_materials(product):
                 material_id = material['material']
                 mat = bpy.data.materials.get(material_id)
                 deactivate_holdout_and_apply_material(part['part']['blender_name'], mat)
-                filepath = render(part['part']['blender_name'] + '-' + material_id)
-                send_image(material['id'], filepath + '.png')
+                if material['image'] is None or replace:
+                    filepath = render(part['part']['blender_name'] + '-' + material_id)
+                    send_image(material['id'], filepath + '.png')
+                    print('Image sent')
+                else:
+                    print('Image already exists')
 
 
-def get_camera_location(product):
-    camera = product['model_3d']['cameras'][0]
-    location = (Decimal(camera['pos_x']),
-                Decimal(camera['pos_y']),
-                Decimal(camera['pos_z']))
-
-    rotation = (radians(Decimal(camera['rad_x'])),
-                radians(Decimal(camera['rad_y'])),
-                radians(Decimal(camera['rad_z'])))
-    return location, rotation
-
-
-def loop_products(data):
-    for product in data['products']:
-        if product['id'] == 19:
-            continue
-
-        create_scene()
-        create_camera(*get_camera_location(product))
-        fetch_and_save_obj(root, product['model_3d']['obj'])
-        add_objects_to_collections(data['parts'])
-        loop_part_materials(product)
+def render_product(data):
+    create_scene()
+    fetch_and_save_obj(root, data['model_3d']['obj'])
+    add_objects_to_collections(data['parts'])
+    loop_part_materials(data)
 
 
 def run():
-    for i in [1]:
+    for i in [17]:
         url = '%s/api/product/render/%d/' % (domain, i)
         print(url)
         response = requests.get(url)
@@ -151,7 +138,7 @@ def run():
         bpy.context.scene.render.resolution_percentage = 100
 
         create_materials(data)
-        loop_products(data)
+        render_product(data)
 
 
 run()

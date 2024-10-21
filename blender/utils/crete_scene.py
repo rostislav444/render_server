@@ -16,6 +16,9 @@ def create_new_scene():
     # Link the new scene to the current blend file
     bpy.context.window.scene = new_scene
 
+    # Set the render anti-aliasing to off
+    bpy.context.scene.display.render_aa = 'OFF'
+
     # Set the world background color to white
     world = bpy.data.worlds.new(name="World")
     new_scene.world = world
@@ -24,7 +27,7 @@ def create_new_scene():
 
 
 def customize_render():
-    size = 1 * 0.5
+    size = 1 * 0.9
     # Set up render engine
     bpy.context.scene.render.engine = 'CYCLES'
 
@@ -37,7 +40,7 @@ def customize_render():
     bpy.context.preferences.addons['cycles'].preferences.devices['Apple M1 (GPU - 7 cores)'].use = True
 
     # Set samples qty
-    bpy.context.scene.cycles.samples = 2000
+    bpy.context.scene.cycles.samples = 200
 
     # Set up rendering settings
     bpy.context.scene.render.resolution_x = int(3000 * size)
@@ -49,8 +52,9 @@ def customize_render():
 def create_light(coords=(8, -4, 8)):
     # Create a new point light object
     light_data = bpy.data.lights.new(name="PointLight", type='POINT')
-    light_data.energy = 2000  # Set light power in watts
-    light_data.shadow_soft_size = 1.0  # Set light radius in centimeters
+    light_data.energy = 3500  # Set light power in watts
+    light_data.shadow_soft_size = 8.0  # Set light radius in centimeters
+    light_data.color = (1, 0.949, 0.864)
 
     light_object = bpy.data.objects.new("PointLight", light_data)
 

@@ -5,12 +5,14 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="e3a1f8da-defe-4251-95d0-9348a5b254bf" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/product_3d_obj.obj" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/render_object.py" beforeDir="false" afterPath="$PROJECT_DIR$/render_object.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/utils/create_materials.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils/create_materials.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/render_object_parts.py" beforeDir="false" afterPath="$PROJECT_DIR$/render_object_parts.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/utils/camera.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils/camera.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/utils/create_materials.py" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/utils/crete_scene.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils/crete_scene.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/utils/rotate_camera.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils/rotate_camera.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/utils/set_obj.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils/set_obj.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/utils/fetch_object.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils/fetch_object.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -24,6 +26,9 @@
   &quot;associatedIndex&quot;: 5
 }</component>
   <component name="ProjectId" id="2hyFzvLJXw0MN9KJLCMc8lNJO5q" />
+  <component name="ProjectLevelVcsManager">
+    <ConfirmationsSetting value="1" id="Add" />
+  </component>
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
@@ -38,6 +43,7 @@
     &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
     &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
     &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.pluginManager&quot;,
     &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
 }</component>
@@ -59,6 +65,40 @@
       <updated>1718558675607</updated>
       <workItem from="1718558676693" duration="1253000" />
       <workItem from="1718562788985" duration="3663000" />
+      <workItem from="1719056842749" duration="1435000" />
+      <workItem from="1719082305155" duration="1504000" />
+      <workItem from="1719680086482" duration="2558000" />
+      <workItem from="1719682924782" duration="6430000" />
+      <workItem from="1720341678191" duration="14133000" />
+      <workItem from="1720366966159" duration="2525000" />
+      <workItem from="1720518168771" duration="895000" />
+      <workItem from="1721909380012" duration="956000" />
+      <workItem from="1721910692494" duration="413000" />
+      <workItem from="1721938754765" duration="780000" />
+      <workItem from="1721983721711" duration="179000" />
+      <workItem from="1722029141171" duration="1513000" />
+      <workItem from="1722072293860" duration="107000" />
+      <workItem from="1722073769198" duration="4364000" />
+      <workItem from="1722275976123" duration="1398000" />
+      <workItem from="1722542514426" duration="1566000" />
+      <workItem from="1723637823067" duration="19393000" />
+      <workItem from="1724237333834" duration="24122000" />
+      <workItem from="1724702832109" duration="653000" />
+      <workItem from="1724860860715" duration="28000" />
+      <workItem from="1724862473194" duration="7935000" />
+      <workItem from="1724957273635" duration="5373000" />
+      <workItem from="1724966885526" duration="737000" />
+      <workItem from="1725052979189" duration="4689000" />
+      <workItem from="1725086043934" duration="8009000" />
+      <workItem from="1725224919364" duration="3924000" />
+      <workItem from="1725309038276" duration="3113000" />
+      <workItem from="1725657118513" duration="3163000" />
+      <workItem from="1725696886695" duration="289000" />
+      <workItem from="1725697187129" duration="46000" />
+      <workItem from="1725697237677" duration="11020000" />
+      <workItem from="1726758294492" duration="10432000" />
+      <workItem from="1726773014789" duration="14320000" />
+      <workItem from="1727013269684" duration="8982000" />
     </task>
     <servers />
   </component>

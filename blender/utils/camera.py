@@ -1,3 +1,6 @@
+from decimal import Decimal
+from math import radians
+
 import bpy
 
 
@@ -20,3 +23,14 @@ def create_camera(location, rotation):
     # Optionally, set the camera location and rotation
     camera_object.location = location
     camera_object.rotation_euler = rotation
+
+
+def get_camera_location(camera):
+    location = (Decimal(camera['pos_x']),
+                Decimal(camera['pos_y']),
+                Decimal(camera['pos_z']))
+
+    rotation = (radians(Decimal(camera['rad_x'])),
+                radians(Decimal(camera['rad_y'])),
+                radians(Decimal(camera['rad_z'])))
+    return location, rotation

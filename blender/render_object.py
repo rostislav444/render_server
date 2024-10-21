@@ -8,15 +8,15 @@ import bpy
 import requests
 
 from utils.camera import create_camera
-from utils.create_materials import create_materials, set_color_material
 from utils.crete_scene import create_scene
 from utils.fetch_object import fetch_and_save_obj
+from utils.materials.base import set_color_material
 
 root = '/Users/rostislavnikolaev/Desktop/Sites/render-server/blender'
 media_path = os.path.join(root, 'media')
 
 local = False
-domain = 'http://0.0.0.0:8000' if local else 'https://dreamers.com.ua'
+domain = 'http://0.0.0.0:8000' if local else 'http://194.15.46.132:8000'
 
 
 def create_new_material(name, color):

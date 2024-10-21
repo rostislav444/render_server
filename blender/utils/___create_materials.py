@@ -31,9 +31,10 @@ def set_color_material(material, color_rgb):
 
 
 def process_texture_response(response, file_name):
+    file_name = file_name.split('/')[-1]
     if response.status_code == 200:
         file_content = response.content
-        file_path = CURRENT_PATH + '/media/' + file_name
+        file_path = CURRENT_PATH + '/media/materials/' + file_name
 
         check_and_create_dirs(file_path)
 
@@ -44,11 +45,12 @@ def process_texture_response(response, file_name):
         return texture
     else:
         print(f'Ошибка при загрузке текстуры. Код ответа: {response.status_code}')
+        print('file_name', file_name)
         return None
 
 
 def load_texture(url):
-    response = requests.get(BASE_URL + url)
+    response = requests.get(url)
     return process_texture_response(response, url)
 
 
@@ -71,14 +73,17 @@ def create_material(material_data):
     if material_data['color']:
         set_color_material(material, material_data['color']['rgb'])
         print('Color created', material_data['color']['name'])
+
     elif material_data['material']:
         nodes = material.node_tree.nodes
         links = material.node_tree.links
 
-        col = material_data['material']['col']
-        nrm = material_data['material'].get('nrm_gl')
-        rgh = material_data['material'].get('rgh')
-        mtl = material_data['material'].get('mtl')
+        blender_material = material_data['material']['blender_material']
+
+        col = blender_material['col']
+        nrm = blender_material.get('nrm_gl')
+        rgh = blender_material.get('rgh')
+        mtl = blender_material.get('mtl')
 
         base_color = load_texture(col)
         normal_map = load_texture(nrm) if nrm else None
@@ -111,7 +116,7 @@ def create_material(material_data):
         #     metallic_map_node = create_texture_node(material, metallic_map)
         #     # links.new(metallic_map_node.inputs["Vector"], tex_coordinate.outputs["UV"])
         #     connect_texture_to_bsdf(material, metallic_map_node, 'Metallic')
-
+    return material
 
 def fetch_and_loop_materials(data):
     for part in data['parts']:
