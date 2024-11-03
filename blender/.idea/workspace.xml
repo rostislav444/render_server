@@ -7,12 +7,9 @@
     <list default="true" id="e3a1f8da-defe-4251-95d0-9348a5b254bf" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/product_3d_obj.obj" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/render_object.py" beforeDir="false" afterPath="$PROJECT_DIR$/render_object.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/render_object_parts.py" beforeDir="false" afterPath="$PROJECT_DIR$/render_object_parts.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/utils/camera.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils/camera.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/utils/create_materials.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/utils/crete_scene.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils/crete_scene.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/utils/fetch_object.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils/fetch_object.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/utils/materials/create.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils/materials/create.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -99,6 +96,15 @@
       <workItem from="1726758294492" duration="10432000" />
       <workItem from="1726773014789" duration="14320000" />
       <workItem from="1727013269684" duration="8982000" />
+      <workItem from="1729522309146" duration="1744000" />
+      <workItem from="1729622078832" duration="1375000" />
+      <workItem from="1729624606957" duration="2068000" />
+      <workItem from="1730074795426" duration="3123000" />
+      <workItem from="1730148920822" duration="792000" />
+      <workItem from="1730150057909" duration="9600000" />
+      <workItem from="1730209649070" duration="3000" />
+      <workItem from="1730212266556" duration="12324000" />
+      <workItem from="1730499298525" duration="16753000" />
     </task>
     <servers />
   </component>

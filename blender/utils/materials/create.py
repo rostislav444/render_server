@@ -44,8 +44,9 @@ def create_texture_material(material, blender_material):
         raise ValueError('blender_material is None')
 
     # Загружаем необходимые текстуры
-    col = blender_material['col']
-    base_color = load_texture(col)
+    color = blender_material.get('color')
+    col = blender_material.get('col')
+    base_color = load_texture(col) if col else None
 
     nrm_gl = blender_material.get('nrm_gl')
     normal_map = load_texture(nrm_gl) if nrm_gl else None
@@ -74,7 +75,10 @@ def create_texture_material(material, blender_material):
 
     displacement_node = nodes.new("ShaderNodeDisplacement")
 
-    if base_color:
+    if color:
+        set_color_to_material(material, color['rgb'])
+        print('Color created', color['name'])
+    elif base_color:
         base_color_node = create_texture_node(material, base_color)
         links.new(base_color_node.inputs["Vector"], mapping_node.outputs["Vector"])
         connect_texture_to_bsdf(material, base_color_node, 'Base Color')

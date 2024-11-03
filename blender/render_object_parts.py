@@ -1,32 +1,15 @@
+import json
 import os
-from decimal import Decimal
-from math import radians
 
 import bpy
 import requests
 
+from settings import domain, replace, root, media_path
 from utils.camera import create_camera, get_camera_location
 from utils.crete_scene import create_scene
 from utils.fetch_object import fetch_and_save_obj
 from utils.materials.fetch import create_materials
-
-root = os.path.dirname(os.path.abspath(__file__))
-media_path = os.path.join(root, 'media')
-
-replace = True
-local = False
-domain = 'http://0.0.0.0:8000' if local else 'http://194.15.46.132:8000'
-
-
-def send_image(scene_material, image_file_path):
-    print('send_image', image_file_path)
-    url = domain + '/api/product/load_scene_material/'
-    payload = {'scene_material': scene_material}
-    files = {'image': open(image_file_path, 'rb')}
-    response = requests.post(url, data=payload, files=files)
-    print(response.status_code)
-    print(response.text)
-    return response.status_code
+from utils.send_image import send_image
 
 
 def get_collection_by_name(name):
@@ -87,47 +70,82 @@ def add_objects_to_collections(parts):
                 new_collection.objects.link(obj)
 
 
-def render(filename=''):
-    filepath = media_path + '/' + 'image-' + filename
+def render(filepath):
     bpy.context.scene.render.filepath = filepath
     bpy.ops.render.render(write_still=True)
-    return filepath
 
 
-def loop_part_materials(product):
-    n = 0
-    for camera in product['model_3d']['cameras']:
-        n += 1
+def write_to_json(pk, model_n, camera_n, material_id, file_path):
+    file_name = os.path.join(media_path, 'variant_%d' % pk, 'images.json')
+    new_data = [material_id, file_path]
 
+    if not os.path.exists(file_name):
+        with open(file_name, 'w') as file:
+            json.dump({}, file)
+            file_data = {}
+    else:
+        with open(file_name, 'r') as file:
+            file_data = json.load(file)
+
+    variant_key = "variant_%d" % pk
+    model_key = "model_%d" % model_n
+    camera_key = "camera_%d" % camera_n
+
+    if variant_key not in file_data:
+        file_data[variant_key] = {}
+
+    if model_key not in file_data[variant_key]:
+        file_data[variant_key][model_key] = {}
+
+    if camera_key not in file_data[variant_key][model_key]:
+        file_data[variant_key][model_key][camera_key] = []
+
+    file_data[variant_key][model_key][camera_key].append(new_data)
+
+    with open(file_name, 'w') as file:
+        json.dump(file_data, file, indent=4)
+
+
+def loop_part_materials(pk, model_n, model_3d):
+    for n, camera in enumerate(model_3d['cameras'], 1):
         create_camera(*get_camera_location(camera))
         for part in camera['parts']:
-            print(part)
+            dir_name = os.path.join('variant_%d' % pk, 'model_%d' % model_n, 'camera_%d' % n,
+                                    part['part']['blender_name'])
+            media_dir = os.path.join(media_path, str(dir_name))
+            if not os.path.exists(media_dir):
+                os.makedirs(media_dir)
+
             for p in camera['parts']:
                 apply_holdout_to_collection(p['part']['blender_name'])
 
             for material in part['materials']:
                 material_id = material['material']
                 mat = bpy.data.materials.get(material_id)
+
                 deactivate_holdout_and_apply_material(part['part']['blender_name'], mat)
+                filepath = dir_name + '/' + material_id + '.png'
+                media_filepath = os.path.join(media_path, filepath)
+
                 if material['image'] is None or replace:
-                    filepath = render(part['part']['blender_name'] + '-' + material_id)
-                    send_image(material['id'], filepath + '.png')
-                    print('Image sent')
+                    render(filepath)
+                    send_image(material['id'], media_filepath)
+                    write_to_json(pk, model_n, n, material['id'], filepath)
                 else:
                     print('Image already exists')
 
 
-def render_product(data):
+def render_product(data, pk):
     create_scene()
-    fetch_and_save_obj(root, data['model_3d']['obj'])
-    add_objects_to_collections(data['parts'])
-    loop_part_materials(data)
+    for model_n, model_3d in enumerate(data['model_3d'], 1):
+        fetch_and_save_obj(pk, model_3d['obj'])
+        add_objects_to_collections(data['parts'])
+        loop_part_materials(pk, model_n, model_3d)
 
 
 def run():
-    for i in [17]:
+    for i in [2]:
         url = '%s/api/product/render/%d/' % (domain, i)
-        print(url)
         response = requests.get(url)
         if not response.ok:
             print('Response error')
@@ -138,7 +156,7 @@ def run():
         bpy.context.scene.render.resolution_percentage = 100
 
         create_materials(data)
-        render_product(data)
+        render_product(data, i)
 
 
 run()
