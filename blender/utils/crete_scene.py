@@ -1,5 +1,60 @@
 import bpy
 
+hdri_path = 'recources/world.exr'
+
+
+def create_hdr_scene():
+    # Create new world if it doesn't exist
+    if not bpy.context.scene.world:
+        world = bpy.data.worlds.new(name="World")
+        bpy.context.scene.world = world
+        world.use_nodes = True
+
+    # Get world node tree
+    world_node_tree = bpy.context.scene.world.node_tree
+    world_node_tree.nodes.clear()
+
+    location_x = 0
+
+    # Add Texture Coordinate node
+    tex_coord = world_node_tree.nodes.new('ShaderNodeTexCoord')
+    tex_coord.location.x = location_x
+    # location_x += 300
+
+    # Add Mapping node
+    mapping_node = world_node_tree.nodes.new('ShaderNodeMapping')
+    mapping_node.location.x = location_x
+    mapping_node.inputs['Location'].default_value = (0, 0, 0)
+    mapping_node.inputs['Rotation'].default_value = (0, 0, -1.396)  # -80 градусов
+    mapping_node.inputs['Scale'].default_value = (1.0, 1.0, 1.0)
+    # location_x += 300
+
+    # Add Environment Texture node
+    environment_texture_node = world_node_tree.nodes.new(type="ShaderNodeTexEnvironment")
+    environment_texture_node.image = bpy.data.images.load(hdri_path)
+    environment_texture_node.location.x = location_x
+    environment_texture_node.interpolation = 'Linear'
+    environment_texture_node.projection = 'EQUIRECTANGULAR'
+    environment_texture_node.image.colorspace_settings.name = 'Linear Rec.709'
+    # location_x += 300
+
+    # Add Background node
+    background_node = world_node_tree.nodes.new(type="ShaderNodeBackground")
+    background_node.inputs["Strength"].default_value = 0.8
+    background_node.location.x = location_x
+    # location_x += 300
+
+    # Add Output node
+    world_output_node = world_node_tree.nodes.new(type="ShaderNodeOutputWorld")
+    world_output_node.location.x = location_x
+
+    # Link nodes
+    links = world_node_tree.links
+    links.new(tex_coord.outputs["Generated"], mapping_node.inputs["Vector"])
+    links.new(mapping_node.outputs["Vector"], environment_texture_node.inputs["Vector"])
+    links.new(environment_texture_node.outputs["Color"], background_node.inputs["Color"])
+    links.new(background_node.outputs["Background"], world_output_node.inputs["Surface"])
+
 
 def create_new_scene():
     # Clear existing mesh objects in the scene
@@ -27,7 +82,7 @@ def create_new_scene():
 
 
 def customize_render():
-    size = 1 * 0.9
+    size = 1 * 0.65
     # Set up render engine
     bpy.context.scene.render.engine = 'CYCLES'
 
@@ -66,6 +121,7 @@ def create_light(coords=(8, -4, 8)):
 
 
 def create_scene():
-    create_new_scene()
     customize_render()
-    create_light((4.07, 1.02, 5.8))
+    create_hdr_scene()
+
+    # create_light((4.07, 1.02, 5.8))
