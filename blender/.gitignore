@@ -1,0 +1,8 @@
+# macOS system files
+**/.DS_Store
+
+# IntelliJ IDEA files
+**/.idea/workspace.xml
+
+# Virtual environment
+**/.venv/
