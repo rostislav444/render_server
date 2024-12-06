@@ -87,7 +87,7 @@ def customize_render():
     bpy.context.scene.render.engine = 'CYCLES'
 
     # Tell blender use GPU
-    bpy.context.preferences.addons['cycles'].preferences.compute_device_type = 'CUDA'
+    bpy.context.preferences.addons['cycles'].preferences.compute_device_type = 'OPTIX'
     bpy.context.scene.cycles.device = 'GPU'
     bpy.context.scene.cycles.denoiser = 'OPTIX'
     bpy.context.preferences.addons['cycles'].preferences.refresh_devices()
