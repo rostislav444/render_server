@@ -92,7 +92,7 @@ def customize_render():
     bpy.context.preferences.addons['cycles'].preferences.refresh_devices()
     for d in bpy.context.preferences.addons['cycles'].preferences.devices:
         print(d)
-    bpy.context.preferences.addons['cycles'].preferences.devices['Apple M1 (GPU - 7 cores)'].use = True
+    bpy.context.preferences.addons['cycles'].preferences.devices['NVIDIA RTX A5000'].use = True
 
     # Set samples qty
     bpy.context.scene.cycles.samples = 200
