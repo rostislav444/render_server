@@ -211,7 +211,7 @@ def send_product(data, pk):
 
 
 def run():
-    for i in manual_ids:
+    for i in ids:
         url = '%s/api/product/render/%d/' % (domain, i)
         response = requests.get(url)
         if not response.ok:
