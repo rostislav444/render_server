@@ -87,7 +87,7 @@ def customize_render():
     bpy.context.scene.render.engine = 'CYCLES'
 
     # Tell blender use GPU
-    bpy.context.preferences.addons['cycles'].preferences.compute_device_type = 'METAL'
+    bpy.context.preferences.addons['cycles'].preferences.compute_device_type = 'CUDA'
     bpy.context.scene.cycles.device = 'GPU'
     bpy.context.preferences.addons['cycles'].preferences.refresh_devices()
     for d in bpy.context.preferences.addons['cycles'].preferences.devices:
