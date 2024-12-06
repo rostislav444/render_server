@@ -12,11 +12,11 @@ from utils.materials.fetch import create_materials
 from utils.send_image import send_image
 
 filter_parts = []
-manual_ids = [10, 11]
+manual_ids = []
 
-write_anyway = False
+write_anyway = True
 make_render = input('Render? (y/n): ') == 'y'
-ids = manual_ids if len(manual_ids) == 0 else [int(i) for i in input('Enter ids: ').replace(' ', '').split(',')]
+ids = manual_ids if len(manual_ids) > 0 else [int(i) for i in input('Enter ids: ').replace(' ', '').split(',')]
 hdr = True
 
 
@@ -203,13 +203,15 @@ def send_part_materials(pk, model_n, model_3d):
                         print(os.path.exists(media_filepath), material['image'])
 
 
+
+
 def send_product(data, pk):
     for model_n, model_3d in enumerate(data['model_3d'], 1):
         send_part_materials(pk, model_n, model_3d)
 
 
 def run():
-    for i in [10, 11]:
+    for i in manual_ids:
         url = '%s/api/product/render/%d/' % (domain, i)
         response = requests.get(url)
         if not response.ok:

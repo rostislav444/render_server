@@ -50,7 +50,7 @@ def create_hdr_scene():
 
     # Link nodes
     links = world_node_tree.links
-    links.new(tex_coord.outputs["Generated"], mapping_node.inputs["Vector"])
+    links.new(tex_coord.outputs["Window"], mapping_node.inputs["Vector"])  # Changed to "Window"
     links.new(mapping_node.outputs["Vector"], environment_texture_node.inputs["Vector"])
     links.new(environment_texture_node.outputs["Color"], background_node.inputs["Color"])
     links.new(background_node.outputs["Background"], world_output_node.inputs["Surface"])

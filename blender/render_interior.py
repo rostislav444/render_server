@@ -163,9 +163,7 @@ def run():
             return
 
         data = response.json()
-
         bpy.context.scene.render.resolution_percentage = 100
-
         render_product(data)
 
 
