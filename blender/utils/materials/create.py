@@ -23,11 +23,6 @@ def set_color_to_material(material, color_rgb):
     (r, g, b) = color_rgb
 
     if principled_bsdf:
-        # New
-        principled_bsdf.inputs['Alpha'].default_value = 1.0
-        principled_bsdf.inputs['Transmission'].default_value = 0.0
-
-        # Old
         principled_bsdf.inputs['Base Color'].default_value = (r, g, b, 1)
 
 
