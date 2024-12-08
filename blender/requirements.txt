@@ -1,1 +1,3 @@
 bpy==4.3.0
+aiohttp
+aiofiles

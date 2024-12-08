@@ -17,7 +17,7 @@ manual_ids = []
 write_anyway = True
 make_render = input('Render? (y/n): ') == 'y'
 ids = manual_ids if len(manual_ids) > 0 else [int(i) for i in input('Enter ids: ').replace(' ', '').split(',')]
-hdr = True
+hdr = False
 
 
 def get_collection_by_name(name):

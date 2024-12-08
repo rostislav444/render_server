@@ -4,6 +4,8 @@ hdri_path = 'recources/world.exr'
 
 
 def create_hdr_scene():
+    rad = 0.0174533
+    grad = -70
     # Create new world if it doesn't exist
     if not bpy.context.scene.world:
         world = bpy.data.worlds.new(name="World")
@@ -25,7 +27,9 @@ def create_hdr_scene():
     mapping_node = world_node_tree.nodes.new('ShaderNodeMapping')
     mapping_node.location.x = location_x
     mapping_node.inputs['Location'].default_value = (0, 0, 0)
-    mapping_node.inputs['Rotation'].default_value = (0, 0, -1.396)  # -80 градусов
+    # 1 grad = 0.0174533 rad
+
+    mapping_node.inputs['Rotation'].default_value = (0, 0, rad * grad)
     mapping_node.inputs['Scale'].default_value = (1.0, 1.0, 1.0)
     # location_x += 300
 
@@ -89,7 +93,8 @@ def customize_render():
     # Tell blender use GPU
     bpy.context.preferences.addons['cycles'].preferences.compute_device_type = 'OPTIX'
     bpy.context.scene.cycles.device = 'GPU'
-    bpy.context.scene.cycles.denoiser = 'OPTIX'
+    # bpy.context.scene.cycles.denoiser = 'OPTIX'
+    bpy.context.scene.cycles.denoiser = 'NONE'
     bpy.context.preferences.addons['cycles'].preferences.refresh_devices()
     for d in bpy.context.preferences.addons['cycles'].preferences.devices:
         print(d)
@@ -122,6 +127,10 @@ def create_light(coords=(8, -4, 8)):
 
 
 def create_scene():
+    bpy.context.scene.render.film_transparent = True
+    bpy.context.scene.render.filter_size = 1.5
+    bpy.context.scene.cycles.blur_glossy = 0
+
     customize_render()
     create_hdr_scene()
 
