@@ -2,15 +2,35 @@ import os
 import asyncio
 import aiohttp
 from typing import List, Dict
-import logging
 from dataclasses import dataclass
+from datetime import datetime
+import platform
+import logging
+from logging.handlers import RotatingFileHandler
 
 from render_object_parts import print_to_console
 from settings import domain, media_path, filter_parts, ids
 
-# Настройка логирования
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+
+# Настройка логирования в файл
+def setup_logger():
+    log_file = 'upload_progress.log'
+    formatter = logging.Formatter('%(asctime)s | %(message)s')
+
+    # Создаём ротируемый файл логов (максимум 10МБ, сохраняем 5 старых файлов)
+    handler = RotatingFileHandler(
+        log_file,
+        maxBytes=10 * 1024 * 1024,  # 10MB
+        backupCount=5,
+        encoding='utf-8'
+    )
+    handler.setFormatter(formatter)
+
+    logger = logging.getLogger('upload_progress')
+    logger.setLevel(logging.INFO)
+    logger.addHandler(handler)
+
+    return logger
 
 
 @dataclass
@@ -26,52 +46,69 @@ class UploadTask:
     total_materials: int
 
 
-async def send_image_async(session: aiohttp.ClientSession, task: UploadTask) -> bool:
-    """Асинхронная отправка одного изображения"""
-    url = f"{domain}/api/product/load_scene_material/"
+class UploadManager:
+    def __init__(self, logger, max_concurrent_uploads: int = 10):
+        self.semaphore = asyncio.Semaphore(max_concurrent_uploads)
+        self.active_uploads = 0
+        self.completed_uploads = 0
+        self.total_uploads = 0
+        self.start_time = None
+        self.logger = logger
 
-    try:
-        # Формируем данные для отправки
-        data = aiohttp.FormData()
-        data.add_field('scene_material', str(task.material_id))
-        data.add_field('image',
-                       open(task.file_path, 'rb'),
-                       filename=os.path.basename(task.file_path))
+    async def upload_file(self, session: aiohttp.ClientSession, task: UploadTask) -> bool:
+        """Асинхронная загрузка одного файла"""
+        async with self.semaphore:
+            self.active_uploads += 1
+            try:
+                # Логируем прогресс
+                elapsed = datetime.now() - self.start_time
+                progress = (self.completed_uploads / self.total_uploads) * 100
+                self.logger.info(
+                    f"Progress: {progress:.1f}% | "
+                    f"Active: {self.active_uploads} | "
+                    f"Completed: {self.completed_uploads}/{self.total_uploads} | "
+                    f"Elapsed: {elapsed.seconds}s | "
+                    f"File: {os.path.basename(task.file_path)}"
+                )
 
-        async with session.post(url, data=data) as response:
-            if response.status == 200:
-                logger.info(f"Successfully uploaded {task.file_path}")
-                return True
-            else:
-                logger.error(f"Failed to upload {task.file_path}: {response.status}")
+                # Формируем данные для отправки
+                data = aiohttp.FormData()
+                data.add_field('scene_material', str(task.material_id))
+                data.add_field('image',
+                               open(task.file_path, 'rb'),
+                               filename=os.path.basename(task.file_path))
+
+                async with session.post(f"{domain}/api/product/load_scene_material/",
+                                        data=data) as response:
+                    success = response.status == 200
+                    if success:
+                        self.logger.info(f"Successfully uploaded {os.path.basename(task.file_path)}")
+                    else:
+                        self.logger.error(f"Failed to upload {os.path.basename(task.file_path)}: {response.status}")
+                    return success
+
+            except Exception as e:
+                self.logger.error(f"Error uploading {task.file_path}: {str(e)}")
                 return False
+            finally:
+                self.active_uploads -= 1
+                self.completed_uploads += 1
 
-    except Exception as e:
-        logger.error(f"Error uploading {task.file_path}: {str(e)}")
-        return False
+    async def process_batch(self, tasks: List[UploadTask]) -> List[bool]:
+        """Обработка группы задач параллельно"""
+        self.total_uploads = len(tasks)
+        self.completed_uploads = 0
+        self.start_time = datetime.now()
 
-
-async def process_upload_tasks(tasks: List[UploadTask], semaphore: asyncio.Semaphore):
-    """Обработка всех задач загрузки с ограничением одновременных запросов"""
-    async with aiohttp.ClientSession() as session:
-        # Создаем список корутин с семафором
-        async def bounded_upload(task):
-            async with semaphore:
-                print_to_console(False, task.variant_pk, task.blender_name,
-                                 task.model_n, task.camera_n, task.total_cameras,
-                                 task.material_n, task.total_materials)
-                return await send_image_async(session, task)
-
-        # Запускаем все задачи и ждем их завершения
-        results = await asyncio.gather(
-            *(bounded_upload(task) for task in tasks),
-            return_exceptions=True
-        )
-        return results
+        async with aiohttp.ClientSession() as session:
+            upload_tasks = [
+                self.upload_file(session, task) for task in tasks
+            ]
+            return await asyncio.gather(*upload_tasks)
 
 
 async def process_model_3d(data: Dict, pk: int) -> List[UploadTask]:
-    """Обработка модели и создание списка задач для загрузки"""
+    """Подготовка списка задач для загрузки"""
     tasks = []
 
     for model_n, model_3d in enumerate(data['model_3d'], 1):
@@ -80,10 +117,12 @@ async def process_model_3d(data: Dict, pk: int) -> List[UploadTask]:
                 blender_name = part['part']['blender_name']
 
                 if len(filter_parts) == 0 or blender_name in filter_parts:
-                    dir_name = os.path.join('variant_%d' % pk,
-                                            'model_%d' % model_n,
-                                            'camera_%d' % camera_n,
-                                            blender_name)
+                    dir_name = os.path.join(
+                        'variant_%d' % pk,
+                        'model_%d' % model_n,
+                        'camera_%d' % camera_n,
+                        blender_name
+                    )
 
                     materials_count = len(part['materials'])
                     for material_n, material in enumerate(part['materials'], 1):
@@ -109,11 +148,15 @@ async def process_model_3d(data: Dict, pk: int) -> List[UploadTask]:
 
 
 async def main():
-    # Создаем семафор для ограничения количества одновременных запросов
-    semaphore = asyncio.Semaphore(10)
+    logger = setup_logger()
+    upload_manager = UploadManager(logger, max_concurrent_uploads=10)
+
+    logger.info("Starting upload process")
 
     for product_id in ids:
         try:
+            logger.info(f"Processing product {product_id}")
+
             # Получаем данные о продукте
             async with aiohttp.ClientSession() as session:
                 url = f'{domain}/api/product/render/{product_id}/'
@@ -123,20 +166,38 @@ async def main():
                         continue
                     data = await response.json()
 
-            # Создаем список задач для загрузки
+            # Подготавливаем задачи для загрузки
             upload_tasks = await process_model_3d(data, product_id)
 
-            # Запускаем загрузку всех файлов
-            results = await process_upload_tasks(upload_tasks, semaphore)
+            if not upload_tasks:
+                logger.info(f"No files to upload for product {product_id}")
+                continue
 
-            # Анализируем результаты
-            success_count = sum(1 for r in results if r is True)
-            logger.info(f"Completed product {product_id}. "
-                        f"Successfully uploaded {success_count} of {len(results)} files.")
+            logger.info(f"Starting upload of {len(upload_tasks)} files for product {product_id}")
+
+            # Запускаем параллельную загрузку
+            results = await upload_manager.process_batch(upload_tasks)
+
+            # Выводим итоговую статистику
+            success_count = sum(1 for r in results if r)
+            logger.info(
+                f"Completed product {product_id}. "
+                f"Successfully uploaded {success_count} of {len(results)} files. "
+                f"Time elapsed: {(datetime.now() - upload_manager.start_time).seconds}s"
+            )
 
         except Exception as e:
             logger.error(f"Error processing product {product_id}: {str(e)}")
 
+    logger.info("Upload process completed")
+
+
+def run_async():
+    """Запуск асинхронного кода с учётом особенностей платформы"""
+    if platform.system() == 'Windows':
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+    asyncio.run(main())
+
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    run_async()
