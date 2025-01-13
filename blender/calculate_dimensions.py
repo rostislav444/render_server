@@ -303,5 +303,5 @@ def write_to_excel(data, sheet, start_row=1):
 
 # Получаем путь к папке через input
 # folder_path = input("Введите путь к папке с .blend файлами: ")
-folder_path = "/Users/rostislavnikolaiev/Desktop/Мебель/Charlson/Комоды/h1200w1200/"
+folder_path = "/Users/rostislavnikolaiev/Desktop/Мебель/ItalianRounded/tvstand"
 process_blend_files(folder_path)
