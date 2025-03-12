@@ -10,13 +10,13 @@ exclude_parts = ['fitting', 'legs']
 
 default_prices = {
     'base': {
-        'paint': 1800,
+        'paint': 2400,
     },
     "second": {
-        'paint': 1800,
+        'paint': 2800,
     },
     'frame': {
-        'paint': 1000,
+        'paint': 2800,
     }
 }
 
@@ -303,5 +303,5 @@ def write_to_excel(data, sheet, start_row=1):
 
 # Получаем путь к папке через input
 # folder_path = input("Введите путь к папке с .blend файлами: ")
-folder_path = "/Users/rostislavnikolaiev/Desktop/Мебель/ItalianRounded/tvstand"
+folder_path = "/Users/rostislavnikolaiev/Desktop/furniture/Charlson/Комоды/h1200w1200"
 process_blend_files(folder_path)

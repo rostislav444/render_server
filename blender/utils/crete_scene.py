@@ -1,5 +1,8 @@
 import bpy
 
+import settings
+
+
 hdri_path = 'recources/world.exr'
 
 
@@ -90,14 +93,33 @@ def customize_render():
     # Set up render engine
     bpy.context.scene.render.engine = 'CYCLES'
 
-    # Tell blender use GPU
-    bpy.context.preferences.addons['cycles'].preferences.compute_device_type = 'OPTIX'
-    bpy.context.scene.cycles.device = 'GPU'
-    bpy.context.scene.cycles.denoiser = 'OPTIX'
+    # Refresh devices
     bpy.context.preferences.addons['cycles'].preferences.refresh_devices()
+
+    # Print available devices for debugging
     for d in bpy.context.preferences.addons['cycles'].preferences.devices:
-        print(d)
-    bpy.context.preferences.addons['cycles'].preferences.devices['NVIDIA RTX A6000'].use = True
+        print(f"Available device: {d.name}, type: {d.type}")
+
+    # Tell blender to use GPU
+    bpy.context.scene.cycles.device = 'GPU'
+
+    if settings.local:
+        bpy.context.preferences.addons['cycles'].preferences.compute_device_type = 'METAL'
+        # Используем цикл для поиска устройства
+        for device in bpy.context.preferences.addons['cycles'].preferences.devices:
+            if device.name == 'Apple M1 (GPU - 7 cores)':
+                device.use = True
+                print(f"Enabled device: {device.name}")
+    else:
+        bpy.context.preferences.addons['cycles'].preferences.compute_device_type = 'OPTIX'
+        # Используем цикл для поиска устройства
+        for device in bpy.context.preferences.addons['cycles'].preferences.devices:
+            if device.name == 'NVIDIA RTX A6000':
+                device.use = True
+                print(f"Enabled device: {device.name}")
+        bpy.context.scene.cycles.denoiser = 'OPTIX'
+
+    bpy.context.preferences.addons['cycles'].preferences.refresh_devices()
 
     # Set samples qty
     bpy.context.scene.cycles.samples = 200
