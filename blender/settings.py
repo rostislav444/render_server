@@ -1,7 +1,7 @@
 import os
 
 replace = True
-local = True
+local = False
 
 domain = 'http://0.0.0.0:8000' if local else 'http://194.15.46.132:8000'
 

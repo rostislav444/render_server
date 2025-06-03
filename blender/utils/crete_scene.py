@@ -1,4 +1,5 @@
 import bpy
+import platform
 
 import settings
 
@@ -97,37 +98,78 @@ def customize_render():
     bpy.context.preferences.addons['cycles'].preferences.refresh_devices()
 
     # Print available devices for debugging
+    print("=== Доступные устройства ===")
     for d in bpy.context.preferences.addons['cycles'].preferences.devices:
-        print(f"Available device: {d.name}, type: {d.type}")
+        print(f"Device: {d.name}, type: {d.type}, use: {d.use}")
 
     # Tell blender to use GPU
     bpy.context.scene.cycles.device = 'GPU'
 
     if settings.local:
+        # Настройки для Mac
         bpy.context.preferences.addons['cycles'].preferences.compute_device_type = 'METAL'
-        # Используем цикл для поиска устройства
         for device in bpy.context.preferences.addons['cycles'].preferences.devices:
-            if device.name == 'Apple M1 (GPU - 7 cores)':
+            if device.type == 'METAL':
                 device.use = True
-                print(f"Enabled device: {device.name}")
+                print(f"Включено METAL устройство: {device.name}")
+                break
     else:
-        bpy.context.preferences.addons['cycles'].preferences.compute_device_type = 'OPTIX'
-        # Используем цикл для поиска устройства
-        for device in bpy.context.preferences.addons['cycles'].preferences.devices:
-            if device.name == 'NVIDIA RTX A6000':
-                device.use = True
-                print(f"Enabled device: {device.name}")
+        # Настройки для сервера - автоматический выбор GPU
+        gpu_found = False
         
-        # Проверяем доступность OPTIX denoiser
-        available_denoisers = bpy.context.scene.cycles.bl_rna.properties['denoiser'].enum_items.keys()
-        if 'OPTIX' in available_denoisers:
-            bpy.context.scene.cycles.denoiser = 'OPTIX'
-            print("Using OPTIX denoiser")
-        else:
+        # Сначала пробуем OPTIX (самый быстрый для NVIDIA)
+        bpy.context.preferences.addons['cycles'].preferences.compute_device_type = 'OPTIX'
+        bpy.context.preferences.addons['cycles'].preferences.refresh_devices()
+        
+        for device in bpy.context.preferences.addons['cycles'].preferences.devices:
+            if device.type == 'OPTIX':
+                device.use = True
+                gpu_found = True
+                print(f"Включено OPTIX устройство: {device.name}")
+                bpy.context.scene.cycles.denoiser = 'OPTIX'
+                print("Используется OPTIX denoiser")
+                break
+        
+        # Если OPTIX нет, пробуем CUDA
+        if not gpu_found:
+            bpy.context.preferences.addons['cycles'].preferences.compute_device_type = 'CUDA'
+            bpy.context.preferences.addons['cycles'].preferences.refresh_devices()
+            
+            for device in bpy.context.preferences.addons['cycles'].preferences.devices:
+                if device.type == 'CUDA':
+                    device.use = True
+                    gpu_found = True
+                    print(f"Включено CUDA устройство: {device.name}")
+                    bpy.context.scene.cycles.denoiser = 'OPTIX'
+                    print("Используется OPTIX denoiser")
+                    break
+        
+        # Если ни OPTIX, ни CUDA нет, пробуем OpenCL
+        if not gpu_found:
+            bpy.context.preferences.addons['cycles'].preferences.compute_device_type = 'OPENCL'
+            bpy.context.preferences.addons['cycles'].preferences.refresh_devices()
+            
+            for device in bpy.context.preferences.addons['cycles'].preferences.devices:
+                if device.type == 'OPENCL':
+                    device.use = True
+                    gpu_found = True
+                    print(f"Включено OpenCL устройство: {device.name}")
+                    bpy.context.scene.cycles.denoiser = 'OPENIMAGEDENOISE'
+                    print("Используется OpenImageDenoise denoiser")
+                    break
+        
+        # Если GPU вообще нет, используем CPU
+        if not gpu_found:
+            print("GPU не найден, используется CPU")
+            bpy.context.scene.cycles.device = 'CPU'
             bpy.context.scene.cycles.denoiser = 'OPENIMAGEDENOISE'
-            print("OPTIX not available, using OPENIMAGEDENOISE denoiser")
 
     bpy.context.preferences.addons['cycles'].preferences.refresh_devices()
+    
+    print("=== Активные устройства после настройки ===")
+    for d in bpy.context.preferences.addons['cycles'].preferences.devices:
+        if d.use:
+            print(f"Активно: {d.name}, type: {d.type}")
 
     # Set samples qty
     bpy.context.scene.cycles.samples = 200
