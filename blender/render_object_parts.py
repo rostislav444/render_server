@@ -1,5 +1,6 @@
 import json
 import os
+import time
 
 import bpy
 import requests
@@ -34,30 +35,27 @@ def apply_holdout_to_collection(collection):
     if isinstance(collection, str):
         collection = get_collection_by_name(collection)
 
-    # Создаем новый материал для эффекта Holdout
-    holdout_material = bpy.data.materials.new(name="Holdout_Material")
-    holdout_material.use_nodes = True
-    nodes = holdout_material.node_tree.nodes
-    links = holdout_material.node_tree.links
+    if not hasattr(apply_holdout_to_collection, '_holdout_material'):
+        holdout_material = bpy.data.materials.new(name="Holdout_Material")
+        holdout_material.use_nodes = True
+        nodes = holdout_material.node_tree.nodes
+        links = holdout_material.node_tree.links
 
-    # Удаляем все ноды
-    for node in nodes:
-        nodes.remove(node)
+        for node in nodes:
+            nodes.remove(node)
 
-    # Добавляем Holdout Shader
-    holdout_node = nodes.new(type='ShaderNodeHoldout')
+        holdout_node = nodes.new(type='ShaderNodeHoldout')
+        output_node = nodes.new(type='ShaderNodeOutputMaterial')
+        links.new(holdout_node.outputs[0], output_node.inputs[0])
+        
+        apply_holdout_to_collection._holdout_material = holdout_material
+    
+    holdout_material = apply_holdout_to_collection._holdout_material
 
-    # Создаем выходной узел
-    output_node = nodes.new(type='ShaderNodeOutputMaterial')
-
-    # Создаем соединения
-    links.new(holdout_node.outputs[0], output_node.inputs[0])
-
-    # Применяем материал ко всем объектам в коллекции
     for obj in collection.objects:
         if obj.type == 'MESH':
-            obj.data.materials.clear()  # Очищаем список материалов объекта
-            obj.data.materials.append(holdout_material)  # Применяем новый материал
+            obj.data.materials.clear()
+            obj.data.materials.append(holdout_material)
 
 
 def add_objects_to_collections(parts):
@@ -85,9 +83,7 @@ def write_to_json(pk, model_n, camera_n, material_id, file_path):
     new_data = [material_id, file_path]
 
     if not os.path.exists(file_name):
-        with open(file_name, 'w') as file:
-            json.dump({}, file)
-            file_data = {}
+        file_data = {}
     else:
         with open(file_name, 'r') as file:
             file_data = json.load(file)
@@ -109,7 +105,7 @@ def write_to_json(pk, model_n, camera_n, material_id, file_path):
         file_data[variant_key][model_key][camera_key].append(new_data)
 
     with open(file_name, 'w') as file:
-        json.dump(file_data, file, indent=4)
+        json.dump(file_data, file)
 
 
 def print_to_console(rendering, pk, blender_name, model_n, camera_n, camera_count, material_n, materials_count):
@@ -155,8 +151,15 @@ def render_part_materials(pk, model_n, model_3d):
                     media_filepath = os.path.join(media_path, filepath)
 
                     if write_anyway or (not os.path.exists(media_filepath) and material['image'] is None):
+                        start_time = time.time()
                         render(media_filepath)
+                        render_time = time.time() - start_time
+                        
+                        start_time = time.time()
                         write_to_json(pk, model_n, n, material_id, filepath)
+                        json_time = time.time() - start_time
+                        
+                        print(f"Render: {render_time:.2f}s, JSON: {json_time:.2f}s")
 
 
 def render_product(data, pk):
@@ -193,8 +196,6 @@ def send_part_materials(pk, model_n, model_3d):
                             send_image(material['id'], media_filepath)
                     else:
                         print(os.path.exists(media_filepath), material['image'])
-
-
 
 
 def send_product(data, pk):
