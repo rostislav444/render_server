@@ -12,7 +12,7 @@ media_path = os.path.join(root, 'media')
 filter_parts = []
 manual_ids = []
 
-write_anyway = input('Write anyway? (y/n): ').lower() == 'y'
 make_render = input('Render? (y/n): ').lower() == 'y'
+write_anyway = input('Write anyway? (y/n): ').lower() == 'y'
 ids = manual_ids if len(manual_ids) > 0 else [int(i) for i in input('Enter ids: ').replace(' ', '').split(',')]
 hdr = True

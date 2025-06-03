@@ -117,7 +117,15 @@ def customize_render():
             if device.name == 'NVIDIA RTX A6000':
                 device.use = True
                 print(f"Enabled device: {device.name}")
-        bpy.context.scene.cycles.denoiser = 'OPTIX'
+        
+        # Проверяем доступность OPTIX denoiser
+        available_denoisers = bpy.context.scene.cycles.bl_rna.properties['denoiser'].enum_items.keys()
+        if 'OPTIX' in available_denoisers:
+            bpy.context.scene.cycles.denoiser = 'OPTIX'
+            print("Using OPTIX denoiser")
+        else:
+            bpy.context.scene.cycles.denoiser = 'OPENIMAGEDENOISE'
+            print("OPTIX not available, using OPENIMAGEDENOISE denoiser")
 
     bpy.context.preferences.addons['cycles'].preferences.refresh_devices()
 
