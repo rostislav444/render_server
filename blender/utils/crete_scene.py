@@ -94,12 +94,63 @@ def customize_render():
     # Set up render engine
     bpy.context.scene.render.engine = 'CYCLES'
 
-    # Refresh devices
-    bpy.context.preferences.addons['cycles'].preferences.refresh_devices()
-
+    # Принудительно обновляем список устройств несколько раз
+    cycles_prefs = bpy.context.preferences.addons['cycles'].preferences
+    
+    # ПРИНУДИТЕЛЬНАЯ ИНИЦИАЛИЗАЦИЯ CUDA для RTX A6000
+    print("=== ПРИНУДИТЕЛЬНАЯ ИНИЦИАЛИЗАЦИЯ CUDA ===")
+    
+    # Сначала устанавливаем CUDA как тип устройства
+    cycles_prefs.compute_device_type = 'CUDA'
+    print("Установлен тип устройства: CUDA")
+    
+    # Многократно обновляем устройства
+    for i in range(5):
+        print(f"Попытка обновления устройств #{i+1}")
+        cycles_prefs.refresh_devices()
+        print(f"Найдено устройств: {len(cycles_prefs.devices)}")
+        
+        for d in cycles_prefs.devices:
+            print(f"  Device: {d.name}, type: {d.type}")
+        
+        if len(cycles_prefs.devices) > 0:
+            break
+    
+    # Если CUDA не помогло, пробуем OPTIX
+    if len(cycles_prefs.devices) == 0:
+        print("CUDA не дало результатов, пробуем OPTIX...")
+        cycles_prefs.compute_device_type = 'OPTIX'
+        
+        for i in range(5):
+            print(f"OPTIX попытка #{i+1}")
+            cycles_prefs.refresh_devices()
+            print(f"Найдено устройств: {len(cycles_prefs.devices)}")
+            
+            for d in cycles_prefs.devices:
+                print(f"  Device: {d.name}, type: {d.type}")
+            
+            if len(cycles_prefs.devices) > 0:
+                break
+    
+    # Пробуем разные типы устройств чтобы найти GPU
+    device_types_to_try = ['HIP', 'ONEAPI']
+    
+    if len(cycles_prefs.devices) == 0:
+        for device_type in device_types_to_try:
+            print(f"Пробуем тип устройств: {device_type}")
+            cycles_prefs.compute_device_type = device_type
+            cycles_prefs.refresh_devices()
+            
+            print(f"Найдено устройств после refresh: {len(cycles_prefs.devices)}")
+            for d in cycles_prefs.devices:
+                print(f"Device: {d.name}, type: {d.type}, use: {d.use}")
+            
+            if len(cycles_prefs.devices) > 0:
+                break
+    
     # Print available devices for debugging
-    print("=== Доступные устройства ===")
-    for d in bpy.context.preferences.addons['cycles'].preferences.devices:
+    print("=== Финальный список устройств ===")
+    for d in cycles_prefs.devices:
         print(f"Device: {d.name}, type: {d.type}, use: {d.use}")
 
     # Tell blender to use GPU
@@ -107,8 +158,9 @@ def customize_render():
 
     if settings.local:
         # Настройки для Mac
-        bpy.context.preferences.addons['cycles'].preferences.compute_device_type = 'METAL'
-        for device in bpy.context.preferences.addons['cycles'].preferences.devices:
+        cycles_prefs.compute_device_type = 'METAL'
+        cycles_prefs.refresh_devices()
+        for device in cycles_prefs.devices:
             if device.type == 'METAL':
                 device.use = True
                 print(f"Включено METAL устройство: {device.name}")
@@ -117,46 +169,20 @@ def customize_render():
         # Настройки для сервера - автоматический выбор GPU
         gpu_found = False
         
-        # Сначала пробуем OPTIX (самый быстрый для NVIDIA)
-        bpy.context.preferences.addons['cycles'].preferences.compute_device_type = 'OPTIX'
-        bpy.context.preferences.addons['cycles'].preferences.refresh_devices()
-        
-        for device in bpy.context.preferences.addons['cycles'].preferences.devices:
-            if device.type == 'OPTIX':
+        # Активируем ВСЕ найденные GPU устройства
+        for device in cycles_prefs.devices:
+            if device.type in ['OPTIX', 'CUDA', 'HIP', 'ONEAPI']:
                 device.use = True
                 gpu_found = True
-                print(f"Включено OPTIX устройство: {device.name}")
-                bpy.context.scene.cycles.denoiser = 'OPTIX'
-                print("Используется OPTIX denoiser")
-                break
-        
-        # Если OPTIX нет, пробуем CUDA
-        if not gpu_found:
-            bpy.context.preferences.addons['cycles'].preferences.compute_device_type = 'CUDA'
-            bpy.context.preferences.addons['cycles'].preferences.refresh_devices()
-            
-            for device in bpy.context.preferences.addons['cycles'].preferences.devices:
-                if device.type == 'CUDA':
-                    device.use = True
-                    gpu_found = True
-                    print(f"Включено CUDA устройство: {device.name}")
+                print(f"Включено {device.type} устройство: {device.name}")
+                
+                # Устанавливаем соответствующий denoiser
+                if device.type in ['OPTIX', 'CUDA']:
                     bpy.context.scene.cycles.denoiser = 'OPTIX'
                     print("Используется OPTIX denoiser")
-                    break
-        
-        # Если ни OPTIX, ни CUDA нет, пробуем OpenCL
-        if not gpu_found:
-            bpy.context.preferences.addons['cycles'].preferences.compute_device_type = 'OPENCL'
-            bpy.context.preferences.addons['cycles'].preferences.refresh_devices()
-            
-            for device in bpy.context.preferences.addons['cycles'].preferences.devices:
-                if device.type == 'OPENCL':
-                    device.use = True
-                    gpu_found = True
-                    print(f"Включено OpenCL устройство: {device.name}")
+                else:
                     bpy.context.scene.cycles.denoiser = 'OPENIMAGEDENOISE'
                     print("Используется OpenImageDenoise denoiser")
-                    break
         
         # Если GPU вообще нет, используем CPU
         if not gpu_found:
@@ -164,10 +190,10 @@ def customize_render():
             bpy.context.scene.cycles.device = 'CPU'
             bpy.context.scene.cycles.denoiser = 'OPENIMAGEDENOISE'
 
-    bpy.context.preferences.addons['cycles'].preferences.refresh_devices()
+    cycles_prefs.refresh_devices()
     
     print("=== Активные устройства после настройки ===")
-    for d in bpy.context.preferences.addons['cycles'].preferences.devices:
+    for d in cycles_prefs.devices:
         if d.use:
             print(f"Активно: {d.name}, type: {d.type}")
 
