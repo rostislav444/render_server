@@ -91,116 +91,68 @@ def create_new_scene():
 
 def customize_render():
     size = 1 * 0.65
-    # Set up render engine
     bpy.context.scene.render.engine = 'CYCLES'
 
-    # Принудительно обновляем список устройств несколько раз
-    cycles_prefs = bpy.context.preferences.addons['cycles'].preferences
-    
-    # ПРИНУДИТЕЛЬНАЯ ИНИЦИАЛИЗАЦИЯ CUDA для RTX A6000
-    print("=== ПРИНУДИТЕЛЬНАЯ ИНИЦИАЛИЗАЦИЯ CUDA ===")
-    
-    # Сначала устанавливаем CUDA как тип устройства
-    cycles_prefs.compute_device_type = 'CUDA'
-    print("Установлен тип устройства: CUDA")
-    
-    # Многократно обновляем устройства
-    for i in range(5):
-        print(f"Попытка обновления устройств #{i+1}")
-        cycles_prefs.refresh_devices()
-        print(f"Найдено устройств: {len(cycles_prefs.devices)}")
-        
-        for d in cycles_prefs.devices:
-            print(f"  Device: {d.name}, type: {d.type}")
-        
-        if len(cycles_prefs.devices) > 0:
-            break
-    
-    # Если CUDA не помогло, пробуем OPTIX
-    if len(cycles_prefs.devices) == 0:
-        print("CUDA не дало результатов, пробуем OPTIX...")
-        cycles_prefs.compute_device_type = 'OPTIX'
-        
-        for i in range(5):
-            print(f"OPTIX попытка #{i+1}")
-            cycles_prefs.refresh_devices()
-            print(f"Найдено устройств: {len(cycles_prefs.devices)}")
-            
-            for d in cycles_prefs.devices:
-                print(f"  Device: {d.name}, type: {d.type}")
-            
-            if len(cycles_prefs.devices) > 0:
-                break
-    
-    # Пробуем разные типы устройств чтобы найти GPU
-    device_types_to_try = ['HIP', 'ONEAPI']
-    
-    if len(cycles_prefs.devices) == 0:
-        for device_type in device_types_to_try:
-            print(f"Пробуем тип устройств: {device_type}")
-            cycles_prefs.compute_device_type = device_type
-            cycles_prefs.refresh_devices()
-            
-            print(f"Найдено устройств после refresh: {len(cycles_prefs.devices)}")
-            for d in cycles_prefs.devices:
-                print(f"Device: {d.name}, type: {d.type}, use: {d.use}")
-            
-            if len(cycles_prefs.devices) > 0:
-                break
-    
-    # Print available devices for debugging
-    print("=== Финальный список устройств ===")
-    for d in cycles_prefs.devices:
-        print(f"Device: {d.name}, type: {d.type}, use: {d.use}")
+    bpy.context.preferences.addons['cycles'].preferences.refresh_devices()
 
-    # Tell blender to use GPU
+    gpu_devices = [d for d in bpy.context.preferences.addons['cycles'].preferences.devices if d.type != 'CPU']
+    
+    print("Найденные GPU устройства:")
+    for d in gpu_devices:
+        print(f"  {d.name}, type: {d.type}")
+
+    if not gpu_devices:
+        raise RuntimeError("Не найдено ни одного GPU устройства! Рендеринг на CPU запрещен.")
+
     bpy.context.scene.cycles.device = 'GPU'
 
-    if settings.local:
-        # Настройки для Mac
-        cycles_prefs.compute_device_type = 'METAL'
-        cycles_prefs.refresh_devices()
-        for device in cycles_prefs.devices:
-            if device.type == 'METAL':
-                device.use = True
-                print(f"Включено METAL устройство: {device.name}")
-                break
-    else:
-        # Настройки для сервера - автоматический выбор GPU
-        gpu_found = False
+    optix_devices = [d for d in gpu_devices if d.type == 'OPTIX']
+    metal_devices = [d for d in gpu_devices if d.type == 'METAL']
+    cuda_devices = [d for d in gpu_devices if d.type == 'CUDA']
+
+    if optix_devices:
+        print("Используем OPTIX устройства (самый быстрый вариант)")
+        bpy.context.preferences.addons['cycles'].preferences.compute_device_type = 'OPTIX'
+        for device in optix_devices:
+            device.use = True
+            print(f"  Включено: {device.name}")
         
-        # Активируем ВСЕ найденные GPU устройства
-        for device in cycles_prefs.devices:
-            if device.type in ['OPTIX', 'CUDA', 'HIP', 'ONEAPI']:
-                device.use = True
-                gpu_found = True
-                print(f"Включено {device.type} устройство: {device.name}")
-                
-                # Устанавливаем соответствующий denoiser
-                if device.type in ['OPTIX', 'CUDA']:
-                    bpy.context.scene.cycles.denoiser = 'OPTIX'
-                    print("Используется OPTIX denoiser")
-                else:
-                    bpy.context.scene.cycles.denoiser = 'OPENIMAGEDENOISE'
-                    print("Используется OpenImageDenoise denoiser")
-        
-        # Если GPU вообще нет, используем CPU
-        if not gpu_found:
-            print("GPU не найден, используется CPU")
-            bpy.context.scene.cycles.device = 'CPU'
+        available_denoisers = list(bpy.context.scene.cycles.bl_rna.properties['denoiser'].enum_items.keys())
+        if 'OPTIX' in available_denoisers:
+            bpy.context.scene.cycles.denoiser = 'OPTIX'
+            print("  Деноизер: OPTIX (лучший для NVIDIA)")
+        elif 'OPENIMAGEDENOISE' in available_denoisers:
             bpy.context.scene.cycles.denoiser = 'OPENIMAGEDENOISE'
+            print("  Деноизер: OpenImageDenoise")
 
-    cycles_prefs.refresh_devices()
-    
-    print("=== Активные устройства после настройки ===")
-    for d in cycles_prefs.devices:
-        if d.use:
-            print(f"Активно: {d.name}, type: {d.type}")
+    elif metal_devices:
+        print("Используем METAL устройства (Apple)")
+        bpy.context.preferences.addons['cycles'].preferences.compute_device_type = 'METAL'
+        for device in metal_devices:
+            device.use = True
+            print(f"  Включено: {device.name}")
+        
+        available_denoisers = list(bpy.context.scene.cycles.bl_rna.properties['denoiser'].enum_items.keys())
+        if 'OPENIMAGEDENOISE' in available_denoisers:
+            bpy.context.scene.cycles.denoiser = 'OPENIMAGEDENOISE'
+            print("  Деноизер: OpenImageDenoise")
 
-    # Set samples qty
+    elif cuda_devices:
+        print("Используем CUDA устройства")
+        bpy.context.preferences.addons['cycles'].preferences.compute_device_type = 'CUDA'
+        for device in cuda_devices:
+            device.use = True
+            print(f"  Включено: {device.name}")
+        
+        available_denoisers = list(bpy.context.scene.cycles.bl_rna.properties['denoiser'].enum_items.keys())
+        if 'OPENIMAGEDENOISE' in available_denoisers:
+            bpy.context.scene.cycles.denoiser = 'OPENIMAGEDENOISE'
+            print("  Деноизер: OpenImageDenoise")
+
+    bpy.context.preferences.addons['cycles'].preferences.refresh_devices()
+
     bpy.context.scene.cycles.samples = 200
 
-    # Set up rendering settings
     bpy.context.scene.render.resolution_x = int(3000 * size)
     bpy.context.scene.render.resolution_y = int(2000 * size)
     bpy.context.scene.render.image_settings.file_format = 'PNG'
